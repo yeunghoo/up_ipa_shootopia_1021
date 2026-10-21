@@ -28,7 +28,7 @@ on:
         default: ''
 
 permissions:
-  contents: read
+  contents: write # GitHub requires write access to view unpublished draft releases.
 
 concurrency:
   group: app-store-upload

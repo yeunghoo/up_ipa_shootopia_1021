@@ -36,7 +36,7 @@ def delivery_from_output(output):
     def find(value):
         if isinstance(value, dict):
             for key, item in value.items():
-                if re.sub(r"[^a-z]", "", key.lower()) == "deliveryid" and isinstance(item, str):
+                if re.sub(r"[^a-z]", "", key.lower()) in {"deliveryid", "deliveryuuid"} and isinstance(item, str):
                     return item
                 found = find(item)
                 if found:
@@ -57,7 +57,7 @@ def delivery_from_output(output):
         found = find(value)
         if found:
             return found
-    match = re.search(r"(?i)delivery[ _-]?id[\s\"':=]+([0-9a-f-]{36})", output)
+    match = re.search(r"(?i)delivery[ _-]?(?:id|uuid)[\s\"':=]+([0-9a-f-]{36})", output)
     return match.group(1) if match else None
 
 
@@ -95,7 +95,7 @@ def main():
         summary("Apple upload command completed successfully.")
         delivery = delivery_from_output(result)
         if not delivery:
-            summary("Apple did not return a delivery ID. Processing must be checked in App Store Connect.")
+            summary("Could not read an Apple delivery ID from the response. Processing must be checked in App Store Connect.")
             return
     elif mode != "status":
         raise RuntimeError("Invalid upload mode")

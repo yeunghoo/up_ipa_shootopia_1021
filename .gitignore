@@ -1,0 +1,6 @@
+*.ipa
+*.p12
+*.mobileprovision
+*.p8
+__pycache__/
+.DS_Store

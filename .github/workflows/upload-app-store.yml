@@ -1,0 +1,64 @@
+name: Upload Shootopia to App Store Connect
+run-name: Shootopia 1.1.0 · ${{ inputs.mode }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: Upload IPA or check an existing delivery
+        type: choice
+        options: [upload, status]
+        default: upload
+        required: true
+      release_tag:
+        description: Draft release containing the signed IPA
+        default: ipa-1.1.0-build-1.1.0
+        required: true
+      asset_name:
+        description: IPA asset filename
+        default: Shootopia-1.1.0.ipa
+        required: true
+      sha256:
+        description: SHA-256 of the locally verified IPA
+        default: 80cd701957e19b3c4d23008f836991896c04c71a898c81ff39368d3b747e5bce
+        required: true
+      delivery_id:
+        description: Apple delivery UUID, required for status mode
+        required: false
+        default: ''
+
+permissions:
+  contents: read
+
+concurrency:
+  group: app-store-upload
+  cancel-in-progress: false
+
+jobs:
+  upload:
+    runs-on: macos-15
+    timeout-minutes: 35
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.2.app/Contents/Developer
+      ASC_APPLE_ID: ${{ secrets.ASC_APPLE_ID }}
+      ASC_APP_SPECIFIC_PASSWORD: ${{ secrets.ASC_APP_SPECIFIC_PASSWORD }}
+      ASC_TEAM_ID: ${{ secrets.ASC_TEAM_ID }}
+      UPLOAD_MODE: ${{ inputs.mode }}
+      RELEASE_TAG: ${{ inputs.release_tag }}
+      ASSET_NAME: ${{ inputs.asset_name }}
+      IPA_SHA256: ${{ inputs.sha256 }}
+      DELIVERY_ID: ${{ inputs.delivery_id }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Download signed IPA from draft release
+        if: inputs.mode == 'upload'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/ipa"
+          gh release download "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" \
+            --pattern "$ASSET_NAME" --dir "$RUNNER_TEMP/ipa"
+      - name: Upload to Apple and check processing
+        run: python3 scripts/upload_app_store.py
